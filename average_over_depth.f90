@@ -34,10 +34,10 @@ program main
     if(bin_iostat .ne. 0) call handle_error(bin_iomsg, err_writing_bin)
     close(102, iostat = bin_iostat, iomsg = bin_iomsg)
     if(bin_iostat .ne. 0) call handle_error(bin_iomsg, err_writing_bin)
-    write(*,*) minval(in_variable), maxval(in_variable)
-    ! do ii = 1, in_z
-    !     write(*,*) ii
-    ! enddo
+    out_variable = 0
+    do ii = 1, in_z
+        out_variable = out_variable + in_variable(:, :, ii)*thickness_array(ii)
+    enddo
 end program
 
 subroutine read_input_parameters(in_path, in_f1, out_f1, status)

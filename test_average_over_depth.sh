@@ -1,6 +1,6 @@
 #!/bin/bash
 # Created by Artur Nowicki on 26.01.2018.
-in_path='out_data/'
+in_path='../../data/boundary_conditions/tmp_bin_data/'
 in_var1='UVEL'
 in_var2='VVEL'
 out_var1='SU'
