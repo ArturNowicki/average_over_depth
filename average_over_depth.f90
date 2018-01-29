@@ -8,47 +8,73 @@ program main
     integer, parameter :: dp = selected_real_kind(15, 307)
     integer, parameter :: max_len = 512
     integer, parameter :: in_x=600, in_y=640, in_z=21
-    character(len=max_len), parameter :: thickness_file = "../../data/grids/thicknesses_2km_600x640.txt"
 
-    character(len=max_len) in_path, in_f1, out_f1, bin_iomsg, f_name
+    character(len=max_len) in_path, in_f1, out_f1, f_name, thickness_file, kmt_file
 
-    integer status, bin_iostat
-    integer ii, jj
+    integer status
+    integer ii, jj, kk, in_k
     real(kind = sp), dimension(in_z) :: thickness_array
     real(kind = dp), dimension(in_x, in_y, in_z) :: in_variable
-    real(kind = dp), dimension(in_x, in_y) :: out_variable
+    real(kind = dp), dimension(in_x, in_y) :: kmt, out_variable
+    real(kind = dp) depth_sum
 
-    call read_input_parameters(in_path, in_f1, out_f1, status)
-    if(status .eq. -1) call handle_error(input_params_err_msg, err_missing_program_input)
+    call read_input_parameters(in_path, in_f1, out_f1, thickness_file, kmt_file, status)
+    if(status .eq. -1) call handle_error(msg_missing_program_input_err, err_missing_program_input)
 
+! read thickness array
     open(unit=101, file=thickness_file, status='old', action='read')
-    read(101,*) thickness_array
+    read(101, *) thickness_array
     close(101)
+
+! read kmt
+    f_name = kmt_file
+    open(102, file = trim(kmt_file), access = 'direct', status = 'old', &
+        form = 'unformatted', convert = 'big_endian', recl = in_x*in_y*8)
+    read(102, rec=1) kmt
+    close(102)
+
+! read data
     f_name = trim(in_path)//trim(in_f1)
-    write(*,*) trim(f_name)
-    open(102, file = f_name, access = 'direct', status = 'old', &
-        iostat = bin_iostat, iomsg = bin_iomsg, form = 'unformatted', &
-        convert = 'big_endian', recl = in_x*in_y*in_z*8)
-    if(bin_iostat .ne. 0) call handle_error(bin_iomsg, err_writing_bin)
-    read(102, rec=1, iostat = bin_iostat, iomsg = bin_iomsg) in_variable
-    if(bin_iostat .ne. 0) call handle_error(bin_iomsg, err_writing_bin)
-    close(102, iostat = bin_iostat, iomsg = bin_iomsg)
-    if(bin_iostat .ne. 0) call handle_error(bin_iomsg, err_writing_bin)
+    open(103, file = trim(f_name), access = 'direct', status = 'old', &
+        form = 'unformatted', convert = 'big_endian', recl = in_x*in_y*in_z*8)
+    read(103, rec=1) in_variable
+    close(103)
+
     out_variable = 0
-    do ii = 1, in_z
-        out_variable = out_variable + in_variable(:, :, ii)*thickness_array(ii)
+    do ii = 1, in_x
+        do jj = 1, in_y
+            in_k = int(kmt(ii,jj))
+            depth_sum = 0
+            do kk = 1, in_k
+                out_variable(ii, jj) = out_variable(ii,jj) + &
+                in_variable(ii, jj, kk)*thickness_array(kk)
+                depth_sum = depth_sum + thickness_array(kk)
+            enddo
+            out_variable(ii, jj) = out_variable(ii, jj)/depth_sum
+        enddo
     enddo
+
+! write data
+    f_name = trim(in_path)//trim(out_f1)
+    open(104, file = trim(f_name), access = 'direct', status = 'replace', &
+        form = 'unformatted', convert = 'big_endian', recl = in_x*in_y*8)
+    write(104, rec=1) out_variable
+    close(104)
+
 end program
 
-subroutine read_input_parameters(in_path, in_f1, out_f1, status)
+subroutine read_input_parameters(in_path, in_f1, out_f1, thickness_file, kmt_file, status)
     implicit none
-    character(len=512), intent(out) :: in_path, in_f1, out_f1
+    character(len=512), intent(out) :: in_path, in_f1, out_f1, thickness_file, kmt_file
     integer, intent(out) :: status
     status = 0
     call getarg(1, in_path)
     call getarg(2, in_f1)
     call getarg(3, out_f1)
-    if(in_path == '' .or. in_f1 == '' .or. out_f1 == '') status = -1
+    call getarg(4, thickness_file)
+    call getarg(5, kmt_file)
+    if(in_path == '' .or. in_f1 == '' .or. out_f1 == '' &
+        .or. thickness_file == '' .or. kmt_file == '') status = -1
 end subroutine
 
 subroutine handle_error(message, status)
