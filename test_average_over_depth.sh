@@ -10,7 +10,7 @@ err_memory_alloc=105
 
 in_path='../../data/boundary_conditions/tmp_bin_data/'
 in_file1='20180101-46800_UVEL_0600_0640_0021_0001.ieeer8'
-out_file1='20180101-68400_SU_0600_0640_0021_0001.ieeer8'
+out_file1='20180101-68400_SU_0600_0640_0001_0001.ieeer8'
 thickness_file='../../data/grids/2km/thickness_2km_600x640.txt'
 kmt_file='../../data/grids/2km/kmt_2km.ieeer8'
 bad_thickness_file='../../data/grids/2km/bad_thickness_file.txt'
@@ -21,7 +21,7 @@ failed_tests=0
 
 
 echo "Compile program."
-gfortran ../common_code/messages.f90 ../common_code/error_codes.f90 average_over_depth.f90 -g -fcheck=all -Wall -o average_over_depth
+gfortran ../common_code/messages.f90 ../common_code/error_codes.f90 average_over_depth.f90 -o average_over_depth
 if [[ $? -ne 0 ]]; then
 	exit
 fi
@@ -88,17 +88,12 @@ out_var1='SV'
 out_var2='SU'
 in_p_len=${#in_path}
 
-for in_f1 in ${in_path}*${in_var1}*; do
+for in_f1 in ${in_path}*${in_var2}*; do
 	# echo ${in_f1:0:23}
-	in_f2=`echo ${in_f1:0:23}*${in_var2}*`
 	in_file1=${in_f1:${in_p_len}}
-	in_file2=${in_f2:${in_p_len}}
 	IFS='_' read -r date_time rest_f_name <<< "$in_file1"
-	out_file1=${date_time}'_'${out_var1}${rest_f_name:4}
-	out_file2=${date_time}'_'${out_var2}${rest_f_name:4}
+	out_file1=${date_time}'_'${out_var2}${rest_f_name:4}
 	echo "-------------------"
-	# echo ${in_path} ${in_file1} ${out_file1}
-
+	echo ${in_file1} ${out_file1}
 	./average_over_depth ${in_path} ${in_file1} ${out_file1} ${thickness_file} ${kmt_file}
-	# ./average_over_depth ${in_path} ${in_file2} ${out_file2}
 done
