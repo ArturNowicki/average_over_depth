@@ -16,7 +16,7 @@ program main
     real(kind = sp), dimension(in_z) :: thickness_array
     real(kind = dp), dimension(in_x, in_y, in_z) :: in_variable
     real(kind = dp), dimension(in_x, in_y) :: kmt, out_variable
-    real(kind = dp) depth_sum, bad_data
+    real(kind = dp) depth_sum
 
     call read_input_parameters(in_path, in_f1, out_f1, thickness_file, kmt_file, status)
     if(status .eq. -1) call handle_error(msg_missing_program_input_err, err_missing_program_input)
@@ -50,10 +50,12 @@ program main
                 in_variable(ii, jj, kk)*thickness_array(kk)
                 depth_sum = depth_sum + thickness_array(kk)
             enddo
-            out_variable(ii, jj) = out_variable(ii, jj)/depth_sum
+            if(in_k.gt.0) then
+                out_variable(ii, jj) = out_variable(ii, jj)/depth_sum
+            endif
         enddo
     enddo
-    where (isnan(out_variable))
+    where (kmt.eq.0)
         out_variable = in_variable(1,1,1)
     endwhere
 ! write data
